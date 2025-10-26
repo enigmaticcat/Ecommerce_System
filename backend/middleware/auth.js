@@ -4,7 +4,10 @@ const authUser = async (req, res, next) => {
   const { token } = req.headers;
 
   if (!token) {
-    return res.json({ success: false, message: 'Not Authorized. Please login again.' });
+    return res.json({ 
+      success: false, 
+      message: 'Not Authorized. Please login again.' 
+    });
   }
 
   try {
@@ -13,7 +16,10 @@ const authUser = async (req, res, next) => {
     next();
   } catch (error) {
     console.log(error);
-    return res.json({ success: false, message: 'Invalid token. Please login again.' });
+    return res.json({ 
+      success: false, 
+      message: 'Invalid token. Please login again.' 
+    });
   }
 };
 

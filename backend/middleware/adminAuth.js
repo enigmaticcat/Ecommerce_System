@@ -5,7 +5,10 @@ const adminAuth = async (req, res, next) => {
     try {
         const { token } = req.headers;
         if (!token) {
-            return res.json({ success: false, message: "Not Authorized. Login Again" });
+            return res.json({ 
+                success: false, 
+                message: "Not Authorized. Login Again" 
+            });
         }
 
         const token_decode = jwt.verify(token, process.env.JWT_SECRET);
@@ -14,11 +17,17 @@ const adminAuth = async (req, res, next) => {
         const user = await userModel.findById(token_decode.id);
 
         if (!user) {
-            return res.json({ success: false, message: "User not found" });
+            return res.json({ 
+                success: false, 
+                message: "User not found" 
+            });
         }
 
         if (user.role !== 'admin') {
-            return res.json({ success: false, message: "Access denied. Admin only." });
+            return res.json({ 
+                success: false, 
+                message: "Access denied. Admin only." 
+            });
         }
 
         // Lưu thông tin user vào request để dùng trong controller
@@ -26,7 +35,10 @@ const adminAuth = async (req, res, next) => {
         next();
     } catch (error) {
         console.log(error);
-        res.json({ success: false, message: error.message });
+        res.json({ 
+            success: false, 
+            message: error.message 
+        });
     }
 };
 
