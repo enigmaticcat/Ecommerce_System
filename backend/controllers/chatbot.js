@@ -11,12 +11,18 @@ const chatWithAI = async (req, res) => {
         const userId = req.body.userId;
 
         if (!question) {
-            return res.status(400).json({ success: false, message: "Question is required" });
+            return res.status(400).json({ 
+                success: false, 
+                message: "Question is required" 
+            });
         }
 
         const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey) {
-            return res.status(500).json({ success: false, message: "Gemini API Key is missing in server config" });
+            return res.status(500).json({ 
+                success: false, 
+                message: "Gemini API Key is missing in server config" 
+            });
         }
 
         // Get or create conversation
@@ -92,7 +98,10 @@ ${recentHistory.map(m => `${m.role === 'user' ? 'Khách' : 'Trợ lý'}: ${m.con
             parsedData = JSON.parse(responseText);
         } catch (e) {
             console.error("JSON Parse Error:", e);
-            return res.json({ success: true, response: "Xin lỗi, hệ thống đang bận. Bạn vui lòng thử lại sau." });
+            return res.json({ 
+                success: true, 
+                response: "Xin lỗi, hệ thống đang bận. Bạn vui lòng thử lại sau." 
+            });
         }
 
         const { intent, entities } = parsedData;
