@@ -1,7 +1,7 @@
 import { useEffect, useState, useContext } from "react";
 import API from "../api";
-import ProductCard from "../components/ProductCard";
-import { UserContext } from "../contexts/UserContext";
+import ProductCard from "../component/ProductCard";
+import { UserContext } from "../UserContext";
 
 export default function Home() {
   const [products, setProducts] = useState([]);
