@@ -125,3 +125,5 @@ export const UserContextProvider = ({ children }) => {
   };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
+};
+
