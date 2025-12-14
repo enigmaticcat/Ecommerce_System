@@ -261,7 +261,10 @@ const getChatHistory = async (req, res) => {
         const conversation = await chatConversationModel.findOne({ sessionId }).sort({ updatedAt: -1 });
 
         if (!conversation) {
-            return res.json({ success: true, messages: [] });
+            return res.json({ 
+                success: true, 
+                messages: [] 
+            });
         }
 
         res.json({
