@@ -124,7 +124,7 @@ const Product = () => {
 
         <div className=" flex flex-col gap-4 border px-6 py-6 text-sm text-gray-500 ">
           <p>
-            Ane-commerce website is an online platform that facilitates the
+            An e-commerce website is an online platform that facilitates the
             buying and selling of products or services over the internet. It
             serves as a virtual marketplace where businesses and individuals
             showcase their product, interact with customers, and conduct
