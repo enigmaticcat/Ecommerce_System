@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=Prata&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -9,18 +9,19 @@ a.active hr {
 }
 
 * {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Be Vietnam Pro', sans-serif;
 }
 
 .prata-regular {
-  font-family: 'Prata', serif;
-  font-weight: 400;
+  font-family: 'Be Vietnam Pro', serif;
+  font-weight: 600;
   font-style: normal;
 }
 
 ::-webkit-scrollbar {
   display: none;
 }
+
 @media (max-width: 640px) {
   a.active {
     background-color: black;
