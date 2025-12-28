@@ -50,7 +50,7 @@ const Cart = () => {
   return (
     <div className="pt-14 border-t">
       <div className="mb-3 text-2xl">
-        <Title text1={'YOUR'} text2={'CART'} />
+        <Title text1={'GIỎ'} text2={'HÀNG'} />
       </div>
 
       <div>
@@ -76,8 +76,7 @@ const Cart = () => {
                   </p>
                   <div className="flex items-center gap-5 mt-2">
                     <p>
-                      {currency}
-                      {product.price}
+                      {product.price.toLocaleString()}{currency}
                     </p>
                     <p className="px-2 sm:px-3 sm:py-1 border bg-slate-50">
                       {item.size}
@@ -125,14 +124,14 @@ const Cart = () => {
                 }}
                 className="my-8 px-8 py-3 bg-black text-white text-sm"
               >
-                PROCEED TO CHECKOUT
+                THANH TOÁN
               </button>
             </div>
           </div>
         </div>
       ) : (
         <div className="text-center py-10">
-          Your cart is empty
+          Giỏ hàng của bạn đang trống
         </div>
       )}
     </div>
