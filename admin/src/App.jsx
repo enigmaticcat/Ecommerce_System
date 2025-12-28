@@ -38,7 +38,7 @@ const App = () => {
                 <Route path='/dashboard' element={<Dashboard token={token} />} />
                 <Route path='/coupons' element={<Coupons token={token} />} />
               </Routes>
-            </div>
+            </div
           </div>
         </>}
     </div>
