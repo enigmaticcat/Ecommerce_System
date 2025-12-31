@@ -31,7 +31,7 @@ productSchema.index({ category: 1 });
 productSchema.index({ 'info.color': 1 });
 productSchema.index({ averageRating: -1 }); 
 
-productSchema.pre('save', function(next) {
+productSchema.pre('save', function() {
     if (this.name && !this.slug) {
         this.slug = this.name
             .toLowerCase()
@@ -39,7 +39,6 @@ productSchema.pre('save', function(next) {
             .replace(/\s+/g, '-')
             .trim();
     }
-    next();
 });
 
 module.exports = mongoose.model('Product', productSchema);

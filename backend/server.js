@@ -37,7 +37,7 @@ app.use(express.urlencoded({ extended: true }));
 app.set('view engine', 'ejs');
 
 connectDB();
-// connectRedis();
+connectRedis();
 
 initRoutes(app);
 

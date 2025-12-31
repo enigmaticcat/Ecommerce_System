@@ -65,10 +65,10 @@ const orderSchema = new mongoose.Schema({
     timestamps: true
 });
 
-orderSchema.pre('save', function(next) {
+orderSchema.pre('save', async function () {
     this.totalAmount = this.items.reduce((total, item) => total + item.totalPrice, 0);
-    next();
 });
+
 
 orderItemSchema.virtual('calculateTotalPrice').get(function() {
     return this.price * this.quantity;
