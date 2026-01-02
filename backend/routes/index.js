@@ -7,9 +7,11 @@ const adminRoute = require('./admin');
 const socialAuthRoute = require('./social'); 
 const paymentRoute = require('./payment');
 const shippingAddressRoute = require('./ShippingAddress');
+const chatRoute = require('./chat');
 
 const initRoutes = (app) => {
     app.use('/api/v1/auth', authRoute);
+    app.use('/api/v1/chat', chatRoute);
     app.use('/api/v1/category', categoryRoute);
     app.use('/api/v1/product', productRoute);
     app.use('/api/v1/user', userRouter);

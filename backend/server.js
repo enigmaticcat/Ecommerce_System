@@ -6,6 +6,8 @@ const mongoose = require('mongoose');
 const session = require('express-session');
 const connectDB = require('./config/connectDB');
 const { connectRedis } = require('./config/redis');
+const http = require('http');
+const SocketServer = require('./socket/socketServer');
 const initRoutes = require('./routes/index');
 
 dotenv.config({ path: path.join(__dirname, '.env') });
@@ -13,6 +15,7 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 const passport = require('./config/passport');
 
 const app = express();
+const server = http.createServer(app);
 
 app.use(cors({
     origin: process.env.CLIENT_URL || 'http://localhost:5173',
@@ -39,9 +42,16 @@ app.set('view engine', 'ejs');
 connectDB();
 connectRedis();
 
+const socketServer = new SocketServer(server);
+
 initRoutes(app);
 
 const PORT = process.env.PORT || 8888;
-app.listen(PORT, () => {
+
+server.listen(PORT, () => { 
     console.log(`Server running on port ${PORT}`);
+    console.log(`Socket.IO ready`);
+    console.log(`Client URL: ${process.env.CLIENT_URL || 'http://localhost:5173'}`);
 });
+
+module.exports = { app, server, socketServer };

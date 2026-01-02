@@ -4,7 +4,6 @@ const FacebookStrategy = require('passport-facebook').Strategy;
 const User = require('../models/user');
 const jwt = require('jsonwebtoken');
 
-// Google Strategy
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -24,8 +23,8 @@ passport.use(new GoogleStrategy({
                 name: profile.displayName,
                 email: profile.emails[0].value,
                 googleId: profile.id,
-                phone: '', 
-                password: Math.random().toString(36).slice(-8), 
+                phone: '',
+                password: Math.random().toString(36).slice(-8),
                 isVerified: true,
                 avatar: profile.photos[0].value
             });
@@ -69,13 +68,14 @@ passport.use(new FacebookStrategy({
                 name: profile.displayName,
                 email: profile.emails ? profile.emails[0].value : `${profile.id}@facebook.com`,
                 facebookId: profile.id,
-                phone: '', 
-                password: Math.random().toString(36).slice(-8), 
+                phone: '',
+                password: Math.random().toString(36).slice(-8), // Random password
                 isVerified: true,
                 avatar: profile.photos ? profile.photos[0].value : null
             });
             await user.save();
         } else {
+
             if (!user.facebookId) {
                 user.facebookId = profile.id;
                 await user.save();
