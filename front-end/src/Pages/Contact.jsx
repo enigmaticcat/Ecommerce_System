@@ -13,7 +13,7 @@ const Contact = () => {
   return (
     <div>
       <div className="to-current text-2xl pt-10 border-t">
-        <Title text1={'CONTACT'} text2={'US'} />
+        <Title text1={'LIÊN HỆ'} text2={'VỚI CHÚNG TÔI'} />
       </div>
 
       <div className="flex flex-col justify-center sm:flex-row gap-10 my-10 mb-28">
@@ -24,31 +24,19 @@ const Contact = () => {
         />
 
         <div className="flex flex-col justify-center items-start gap-4">
-          <p className="font-semibold text-altext-gray-600">Our Store</p>
+          <p className="font-semibold text-altext-gray-600">Cửa Hàng Của Chúng Tôi</p>
           <p className="text-gray-500">
-            7298 King Lodge
+            123 Đường Trần Duy Hưng
             <br />
-            North Elton, Illinois 78154
+            Quận Cầu Giấy, TP. Hà Nội
           </p>
 
           <p className="text-gray-800">
-            Tel: <span className="text-gray-500">+1 800 123 1234</span>
+            Điện thoại: <span className="text-gray-500">+123 456 789</span>
           </p>
           <p className=" text-gray-800">
-            Email: <span className="text-gray-500">admin@forever.com</span>
+            Email: <span className="text-gray-500">contact@forever.vn</span>
           </p>
-
-          <p className="text-gray-500">Careers at Forever</p>
-          <p className="text-gray-500">
-            Learn more about our teams and job openings.
-          </p>
-
-          <button
-            className="border border-black px-8 py-4 text-sm hover:bg-black hover:text-white  transition-all duration-500 "
-            onClick={scrollToTop}
-          >
-            Explore Jobs
-          </button>
         </div>
       </div>
 

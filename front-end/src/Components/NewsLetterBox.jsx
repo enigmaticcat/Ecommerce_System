@@ -1,16 +1,16 @@
 const NewsLetterBox = () => {
   const onSubmitHandler = (e) => {
     e.preventDefault();
-    alert('Subscribed successfully!');
+    alert('Đăng ký thành công!');
   };
 
   return (
     <div className="text-center">
       <p className="text-2xl font-medium text-gray-800">
-        Subscribe now & get 20% off
+        Đăng ký ngay & nhận giảm giá 20%
       </p>
       <p className="text-gray-500 mt-3">
-        Be the first to know about new arrivals, sales & promos!
+        Hãy là người đầu tiên nhận thông tin về sản phẩm mới, khuyến mãi và ưu đãi đặc biệt!
       </p>
 
       <form
@@ -19,7 +19,7 @@ const NewsLetterBox = () => {
       >
         <input
           type="email"
-          placeholder="Enter your email"
+          placeholder="Nhập email của bạn"
           className="w-full sm:flex-1 outline-none "
           required
         />
@@ -27,7 +27,7 @@ const NewsLetterBox = () => {
           type="submit"
           className="bg-black text-white text-xs px-10 py-4 "
         >
-          Subscribe
+          Đăng ký
         </button>
       </form>
     </div>
