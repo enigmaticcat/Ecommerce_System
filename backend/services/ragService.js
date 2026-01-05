@@ -336,10 +336,92 @@ const expandQuery = (query) => {
 };
 
 /**
+ * Detect gender from query
+ */
+const detectGender = (query) => {
+    const lowerQuery = query.toLowerCase();
+
+    // Male indicators
+    const maleKeywords = ['nam', 'đàn ông', 'con trai', 'anh', 'chồng', 'bố', 'cha', 'ông', 'chàng trai', 'men', 'male', 'boy'];
+    // Female indicators  
+    const femaleKeywords = ['nữ', 'phụ nữ', 'con gái', 'chị', 'vợ', 'mẹ', 'bà', 'cô gái', 'women', 'female', 'girl'];
+    // Kid indicators
+    const kidKeywords = ['bé', 'trẻ em', 'em bé', 'nhỏ', 'kid', 'child', 'baby', 'con nhỏ'];
+
+    for (const kw of kidKeywords) {
+        if (lowerQuery.includes(kw)) return 'Kid';
+    }
+    for (const kw of maleKeywords) {
+        if (lowerQuery.includes(kw)) return 'Men';
+    }
+    for (const kw of femaleKeywords) {
+        if (lowerQuery.includes(kw)) return 'Women';
+    }
+
+    // Try to infer from body measurements (1m80, 80kg typically male)
+    const heightMatch = lowerQuery.match(/(\d+)\s*m\s*(\d+)?|cao\s*(\d+)/);
+    const weightMatch = lowerQuery.match(/(\d+)\s*(?:kg|cân|kí)/);
+
+    if (heightMatch && weightMatch) {
+        const weight = parseInt(weightMatch[1]);
+        // Only infer Kid for small weights. For adults, do not guess gender based on weight/height to avoid bias.
+        if (weight < 40) return 'Kid';
+    }
+
+    return null; // Unknown gender
+};
+
+/**
+ * Suggest size based on body measurements
+ */
+const suggestSize = (query) => {
+    const lowerQuery = query.toLowerCase();
+
+    // Extract height (meters)
+    let height = null;
+    const heightMatch1 = lowerQuery.match(/(\d)[,.]?(\d{2})\s*m/); // 1.80m, 1,80m
+    const heightMatch2 = lowerQuery.match(/cao\s*(\d{3})/); // cao 180
+    const heightMatch3 = lowerQuery.match(/(\d)m(\d{2})/); // 1m80
+
+    if (heightMatch1) height = parseInt(heightMatch1[1]) * 100 + parseInt(heightMatch1[2]);
+    else if (heightMatch2) height = parseInt(heightMatch2[1]);
+    else if (heightMatch3) height = parseInt(heightMatch3[1]) * 100 + parseInt(heightMatch3[2]);
+
+    // Extract weight (kg)
+    let weight = null;
+    const weightMatch = lowerQuery.match(/(\d+)\s*(?:kg|cân|kí)/);
+    if (weightMatch) weight = parseInt(weightMatch[1]);
+
+    if (!height && !weight) return null;
+
+    // Size calculation based on Vietnamese sizing
+    let suggestedSize = 'M';
+    if (weight && height) {
+        if (weight < 50 || height < 160) suggestedSize = 'S';
+        else if (weight < 65 && height < 175) suggestedSize = 'M';
+        else if (weight < 80 && height < 185) suggestedSize = 'L';
+        else if (weight < 95 && height < 190) suggestedSize = 'XL';
+        else suggestedSize = 'XXL';
+    }
+
+    return { height, weight, suggestedSize };
+};
+
+/**
  * Get consultation response using RAG
  */
 const getConsultation = async (userQuery, conversationHistory = []) => {
     try {
+        // Detect gender from query
+        const detectedGender = detectGender(userQuery);
+        console.log(`[RAG] Detected gender: ${detectedGender || 'Unknown'}`);
+
+        // Suggest size based on body measurements
+        const sizeInfo = suggestSize(userQuery);
+        if (sizeInfo) {
+            console.log(`[RAG] Body info: ${sizeInfo.height}cm, ${sizeInfo.weight}kg → Size ${sizeInfo.suggestedSize}`);
+        }
+
         // Extract price filter from query
         const priceMatch = userQuery.match(/dưới\s*(\d+)k?/i) || userQuery.match(/(\d+)k?\s*trở xuống/i);
         let maxPrice = null;
@@ -348,7 +430,13 @@ const getConsultation = async (userQuery, conversationHistory = []) => {
             maxPrice = num < 1000 ? num * 1000 : num;
         }
 
-        const similarProducts = await searchSimilar(userQuery, 5, { maxPrice });
+        // Search with gender filter
+        const filters = { maxPrice };
+        if (detectedGender) {
+            filters.category = detectedGender;
+        }
+
+        const similarProducts = await searchSimilar(userQuery, 5, filters);
 
         if (similarProducts.length === 0) {
             return {
@@ -361,6 +449,12 @@ const getConsultation = async (userQuery, conversationHistory = []) => {
         const productContext = similarProducts.map((p, i) =>
             `${i + 1}. ${p.name} - ${p.price.toLocaleString()}đ - ${p.category}/${p.subCategory}`
         ).join('\n');
+
+        // Build size recommendation context
+        let sizeContext = "";
+        if (sizeInfo) {
+            sizeContext = `\nThông tin khách hàng: Cao ${sizeInfo.height}cm, nặng ${sizeInfo.weight}kg. Size gợi ý: ${sizeInfo.suggestedSize}.`;
+        }
 
         // Build conversation context
         let historyContext = "";
@@ -378,11 +472,13 @@ const getConsultation = async (userQuery, conversationHistory = []) => {
 Bạn là AI tư vấn thời trang cho cửa hàng quần áo.
 ${historyContext}
 Khách hàng hỏi: "${userQuery}"
+${sizeContext}
 
-Danh sách sản phẩm phù hợp:
+Danh sách sản phẩm phù hợp (đã lọc theo giới tính ${detectedGender || 'chung'}):
 ${productContext}
 
 Nhiệm vụ: Tư vấn ngắn gọn (2-3 câu) giải thích tại sao các sản phẩm này phù hợp với nhu cầu của khách.
+${sizeInfo ? `Đề cập rằng với số đo của khách, size ${sizeInfo.suggestedSize} sẽ phù hợp nhất.` : ''}
 Chỉ đề cập đến sản phẩm trong danh sách trên, không bịa thêm.
 Trả lời bằng tiếng Việt, thân thiện và chuyên nghiệp.
 QUAN TRỌNG: KHÔNG sử dụng markdown (không dùng **, *, #, - hoặc bất kỳ ký tự định dạng nào). Chỉ trả lời bằng văn bản thuần túy.
