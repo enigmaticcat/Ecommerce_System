@@ -56,7 +56,7 @@ const Orders = () => {
     if (!date) return "Invalid date";
     const dateObj = new Date(date); 
     if (isNaN(dateObj)) return "Invalid date";
-    return dateObj.toLocaleDateString("en-US", {
+    return dateObj.toLocaleDateString("vi-VN", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
