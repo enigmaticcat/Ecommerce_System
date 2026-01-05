@@ -1,5 +1,6 @@
 import { v2 as cloudinary } from "cloudinary"
 import productModel from "../models/product.js"
+import { upsertProductEmbedding, deleteProductEmbedding } from "../services/ragService.js"
 
 const addProduct = async (req, res) => {
 
@@ -36,6 +37,10 @@ const addProduct = async (req, res) => {
         const product = new productModel(productData);
         await product.save();
 
+        // Auto re-embed for RAG
+        await upsertProductEmbedding(product._id);
+        console.log(`[Product] Added and embedded: ${product.name}`);
+
         res.json({ success: true, message: "Product Added" })
 
     } catch (error) {
@@ -64,7 +69,12 @@ const removeProduct = async (req, res) => {
             return res.json({ success: false, message: "Product not found" });
         }
 
+        // Delete embedding first
+        await deleteProductEmbedding(req.body.id);
+
         await productModel.findByIdAndDelete(req.body.id);
+        console.log(`[Product] Removed and deleted embedding: ${product.name}`);
+
         res.json({ success: true, message: "Product Removed" });
     } catch (error) {
         console.log(error);
@@ -109,6 +119,12 @@ const updateProduct = async (req, res) => {
         if (bestseller !== undefined) updateData.bestseller = bestseller === "true" || bestseller === true;
 
         const updatedProduct = await productModel.findByIdAndUpdate(id, updateData, { new: true });
+
+        // Re-embed if name, description, or category changed
+        if (name || description || category || subCategory) {
+            await upsertProductEmbedding(id);
+            console.log(`[Product] Updated and re-embedded: ${updatedProduct.name}`);
+        }
 
         res.json({ success: true, message: "Product Updated", product: updatedProduct });
     } catch (error) {

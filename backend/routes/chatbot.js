@@ -1,11 +1,13 @@
 
 import express from 'express';
-import { chatWithAI } from '../controllers/chatbot.js';
-import authMiddleware from '../middleware/auth.js';
+import { chatWithAI, getChatHistory, clearChatHistory } from '../controllers/chatbot.js';
+import optionalAuth from '../middleware/optionalAuth.js';
 
 const chatbotRouter = express.Router();
 
-// Using authMiddleware to get userId for personalized answers (e.g. order status)
-chatbotRouter.post('/ask', authMiddleware, chatWithAI);
+// Using optionalAuth - chatbot works for guests, but can use userId if logged in
+chatbotRouter.post('/ask', optionalAuth, chatWithAI);
+chatbotRouter.get('/history', optionalAuth, getChatHistory);
+chatbotRouter.delete('/clear', optionalAuth, clearChatHistory);
 
 export default chatbotRouter;

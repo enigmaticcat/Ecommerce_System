@@ -11,12 +11,28 @@ import coupon from './routes/coupon.js'
 import vnpay from './routes/vnpay.js'
 import chatbot from './routes/chatbot.js'
 import category from './routes/category.js'
+import recommendation from './routes/recommendation.js'
+import { loadIndexFromDB } from './services/ragService.js'
 
 //App Config
 const app = express()
 const port = process.env.PORT || 4000
-connectDB()
-connectCloudinary()
+
+// Initialize connections
+const initializeServer = async () => {
+    await connectDB()
+    await connectCloudinary()
+
+    // Load RAG product index from DB after DB connection
+    console.log('[Server] Loading RAG product index from database...')
+    loadIndexFromDB().then(() => {
+        console.log('[Server] RAG product index ready')
+    }).catch(err => {
+        console.error('[Server] RAG index load failed:', err.message)
+    })
+}
+
+initializeServer()
 
 //Middleware
 app.use(express.json())
@@ -31,6 +47,7 @@ app.use('/api/coupon', coupon)
 app.use('/api/vnpay', vnpay)
 app.use('/api/chatbot', chatbot)
 app.use('/api/category', category)
+app.use('/api/recommendation', recommendation)
 
 app.get('/', (req, res) => {
     res.send("API Working")

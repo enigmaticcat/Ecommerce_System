@@ -2,14 +2,13 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import productModel from "../models/product.js";
 import orderModel from "../models/order.js";
-
-// Simple in-memory session store
-const userSessions = {};
+import chatConversationModel from "../models/chatConversation.js";
+import { getConsultation } from "../services/ragService.js";
 
 const chatWithAI = async (req, res) => {
     try {
         const { question } = req.body;
-        const userId = req.body.userId; // Provided by auth middleware
+        const userId = req.body.userId;
 
         if (!question) {
             return res.status(400).json({ success: false, message: "Question is required" });
@@ -20,18 +19,44 @@ const chatWithAI = async (req, res) => {
             return res.status(500).json({ success: false, message: "Gemini API Key is missing in server config" });
         }
 
+        // Get or create conversation
+        const sessionId = userId || req.ip || "unknown_user";
+        let conversation = await chatConversationModel.findOne({ sessionId }).sort({ updatedAt: -1 });
+
+        if (!conversation) {
+            conversation = new chatConversationModel({
+                sessionId,
+                userId: userId || null,
+                messages: []
+            });
+        }
+
+        // Get recent conversation history for context
+        const recentHistory = conversation.getRecentMessages(6);
+
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+        // Build history context for intent classification
+        let historyContext = "";
+        if (recentHistory.length > 0) {
+            historyContext = `
+Lịch sử hội thoại gần đây:
+${recentHistory.map(m => `${m.role === 'user' ? 'Khách' : 'Trợ lý'}: ${m.content.substring(0, 100)}`).join('\n')}
+---
+`;
+        }
 
         // 1. Prompt Engineering: Force JSON output
         const prompt = `
         Role: You are an intelligent eCommerce intent classifier for a fashion website.
         Task: Analyze the user's Vietnamese query and extract the INTENT and ENTITIES.
-
+        ${historyContext}
         Constraints:
         1. Output MUST be strict JSON format only. No markdown (no \`\`\`json tags), no explanations.
         2. If intent is unclear, return "intent": "UNKNOWN".
         3. Do not Hallucinate data. Only extract what is explicitly or implicitly stated.
+        4. Consider conversation history when understanding context.
 
         Available Intents:
         - "SEARCH_PRODUCT": When user looks for items generally (e.g., "có áo thun không", "giày nam").
@@ -39,6 +64,7 @@ const chatWithAI = async (req, res) => {
         - "CHECK_PRICE": When user asks for price (e.g., "giá bao nhiêu", "cái này bao tiền").
         - "CHECK_MY_ORDER": When user asks about their own order status/history (e.g., "đơn hàng của tôi đâu", "bao giờ giao", "kiểm tra đơn vừa đặt").
         - "PAYMENT_INFO": Questions about payment methods, VNPAY, banking.
+        - "CONSULT_PRODUCT": When user asks for advice/recommendations based on occasion, weather, purpose, budget (e.g., "tôi nên mặc gì đi tiệc", "thời tiết lạnh nên mua gì", "gợi ý áo dưới 500k", "tư vấn outfit cho tôi").
 
         JSON Structure:
         {
@@ -47,7 +73,9 @@ const chatWithAI = async (req, res) => {
             "product_name": "String or null", 
             "category": "String or null",     
             "size": "String or null",        
-            "order_id": "String or null"      
+            "order_id": "String or null",
+            "occasion": "String or null",
+            "max_price": "Number or null"
         }
         }
 
@@ -64,56 +92,60 @@ const chatWithAI = async (req, res) => {
             parsedData = JSON.parse(responseText);
         } catch (e) {
             console.error("JSON Parse Error:", e);
-            // Fallback
             return res.json({ success: true, response: "Xin lỗi, hệ thống đang bận. Bạn vui lòng thử lại sau." });
         }
 
         const { intent, entities } = parsedData;
-        const sessionId = userId || req.ip || "unknown_user";
 
-        // --- MEMORY LOGIC START ---
-
-        // 1. If new product mentioned, save to session
-        if (entities.product_name) {
-            userSessions[sessionId] = {
-                product_name: entities.product_name,
-                category: entities.category
-            };
-        }
-        // 2. If no product mentioned but we have context, inject it
-        else if (userSessions[sessionId]) {
-            // Only inject if the intent suggests a follow-up (Stock, Price, Search)
-            // and the user is asking about a specific attribute (like size) or just general "it"
-            if (["CHECK_STOCK", "CHECK_PRICE", "SEARCH_PRODUCT"].includes(intent)) {
-                console.log(`[Memory] Restoring context for ${sessionId}:`, userSessions[sessionId]);
-                entities.product_name = userSessions[sessionId].product_name;
-                if (!entities.category) entities.category = userSessions[sessionId].category;
+        // --- MEMORY LOGIC: Use conversation history for context ---
+        // Extract context from recent messages if entities are missing
+        if (!entities.product_name && recentHistory.length > 0) {
+            // Look for product mentions in recent conversation
+            for (const msg of recentHistory.slice().reverse()) {
+                if (msg.role === 'user') {
+                    const productMatch = msg.content.match(/(?:áo|quần|giày|váy|đầm|túi|mũ|khoác)\s+\w+/i);
+                    if (productMatch && ["CHECK_STOCK", "CHECK_PRICE", "SEARCH_PRODUCT"].includes(intent)) {
+                        entities.product_name = productMatch[0];
+                        console.log(`[Memory] Restored product context: ${entities.product_name}`);
+                        break;
+                    }
+                }
             }
         }
-        // --- MEMORY LOGIC END ---
 
         let aiResponse = "";
+        let products = null;
 
         // 2. Logic Handling based on Intent
         switch (intent) {
+            case "CONSULT_PRODUCT":
+                console.log("[Chatbot] Using RAG consultation for query:", question);
+                const consultation = await getConsultation(question, recentHistory);
+
+                if (consultation.success) {
+                    aiResponse = consultation.message;
+                    products = consultation.products;
+                } else {
+                    aiResponse = consultation.message;
+                }
+                break;
+
             case "SEARCH_PRODUCT":
-                // Logic: Search properties
                 const searchFilter = {};
                 if (entities.product_name) searchFilter.name = { $regex: entities.product_name, $options: 'i' };
                 if (entities.category) searchFilter.category = { $regex: entities.category, $options: 'i' };
 
-                const products = await productModel.find(searchFilter).limit(3);
+                const searchProducts = await productModel.find(searchFilter).limit(3);
 
-                if (products.length > 0) {
-                    aiResponse = `Mình tìm thấy ${products.length} sản phẩm phù hợp:\n`;
-                    products.forEach(p => aiResponse += `- ${p.name}: ${p.price.toLocaleString()}đ\n`);
+                if (searchProducts.length > 0) {
+                    aiResponse = `Mình tìm thấy ${searchProducts.length} sản phẩm phù hợp:\n`;
+                    searchProducts.forEach(p => aiResponse += `- ${p.name}: ${p.price.toLocaleString()}đ\n`);
                 } else {
                     aiResponse = "Xin lỗi, mình không tìm thấy sản phẩm nào phù hợp với yêu cầu của bạn.";
                 }
                 break;
 
             case "CHECK_STOCK":
-                // Logic: Check specific product stock
                 if (!entities.product_name) {
                     aiResponse = "Bạn muốn kiểm tra tồn kho cho sản phẩm nào ạ?";
                 } else {
@@ -129,7 +161,6 @@ const chatWithAI = async (req, res) => {
                                 aiResponse = `Sản phẩm "${productStock.name}" không có size ${entities.size}.`;
                             }
                         } else {
-                            // List all sizes
                             aiResponse = `Sản phẩm "${productStock.name}" hiện có:\n- Size S: ${getStock(productStock, 'S')}\n- Size M: ${getStock(productStock, 'M')}\n- Size L: ${getStock(productStock, 'L')}\n- Size XL: ${getStock(productStock, 'XL')}\n- Size XXL: ${getStock(productStock, 'XXL')}`;
                         }
                     }
@@ -153,7 +184,6 @@ const chatWithAI = async (req, res) => {
                 if (!userId) {
                     aiResponse = "Bạn cần đăng nhập để kiểm tra đơn hàng ạ.";
                 } else {
-                    // Get latest order or specific order
                     const orders = await orderModel.find({ userId: userId }).sort({ date: -1 }).limit(1);
                     if (orders.length > 0) {
                         const order = orders[0];
@@ -171,11 +201,35 @@ const chatWithAI = async (req, res) => {
 
             case "UNKNOWN":
             default:
-                aiResponse = "Xin lỗi, mình chưa hiểu ý bạn lắm. Bạn có thể hỏi về sản phẩm, giá cả, tồn kho hoặc đơn hàng được không?";
+                console.log("[Chatbot] Unknown intent, trying RAG consultation as fallback");
+                const fallbackConsultation = await getConsultation(question, recentHistory);
+
+                if (fallbackConsultation.success && fallbackConsultation.products.length > 0) {
+                    aiResponse = fallbackConsultation.message;
+                    products = fallbackConsultation.products;
+                } else {
+                    aiResponse = "Xin lỗi, mình chưa hiểu ý bạn lắm. Bạn có thể hỏi về sản phẩm, giá cả, tồn kho, đơn hàng, hoặc nhờ mình tư vấn outfit phù hợp nhé!";
+                }
                 break;
         }
 
-        res.json({ success: true, response: aiResponse, intent: intent });
+        // Save conversation to database
+        conversation.messages.push({ role: 'user', content: question });
+        conversation.messages.push({ role: 'assistant', content: aiResponse });
+
+        // Keep only last 20 messages
+        if (conversation.messages.length > 20) {
+            conversation.messages = conversation.messages.slice(-20);
+        }
+
+        await conversation.save();
+
+        const responsePayload = { success: true, response: aiResponse, intent: intent };
+        if (products) {
+            responsePayload.products = products;
+        }
+
+        res.json(responsePayload);
 
     } catch (error) {
         console.error("Chatbot Error:", error);
@@ -189,4 +243,43 @@ const getStock = (product, size) => {
     return s ? s.quantity : 0;
 }
 
-export { chatWithAI };
+// Get chat history for user
+const getChatHistory = async (req, res) => {
+    try {
+        const userId = req.body.userId;
+        const sessionId = userId || req.ip || "unknown_user";
+
+        const conversation = await chatConversationModel.findOne({ sessionId }).sort({ updatedAt: -1 });
+
+        if (!conversation) {
+            return res.json({ success: true, messages: [] });
+        }
+
+        res.json({
+            success: true,
+            messages: conversation.messages.slice(-20)
+        });
+
+    } catch (error) {
+        console.error("Get History Error:", error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+}
+
+// Clear chat history
+const clearChatHistory = async (req, res) => {
+    try {
+        const userId = req.body.userId;
+        const sessionId = userId || req.ip || "unknown_user";
+
+        await chatConversationModel.deleteMany({ sessionId });
+
+        res.json({ success: true, message: "Đã xóa lịch sử chat" });
+
+    } catch (error) {
+        console.error("Clear History Error:", error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+}
+
+export { chatWithAI, getChatHistory, clearChatHistory };
