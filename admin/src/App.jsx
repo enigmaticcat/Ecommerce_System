@@ -4,13 +4,19 @@ import Sidebar from './components/Sidebar';
 import { Routes, Route } from 'react-router-dom';
 import Add from './pages/Add';
 import List from './pages/List';
+import Edit from './pages/Edit';
 import Orders from './pages/Orders';
+import Restock from './pages/Restock';
+import Dashboard from './pages/Dashboard';
+import Coupons from './pages/Coupons';
+import Users from './pages/Users';
+import Category from './pages/Category';
 import Login from './components/Login';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 export const backendUrl = import.meta.env.VITE_BACKEND_URL;
-export const currency = "$";
+export const currency = "₫";
 
 const App = () => {
 
@@ -32,13 +38,17 @@ const App = () => {
             <Sidebar />
             <div className="w-[70%] mx-auto ml-[max(5vw,25px)] my-8 text-gray-600 text-base">
               <Routes>
+                <Route path='/' element={<Dashboard token={token} />} />
                 <Route path='/add' element={<Add token={token} />} />
                 <Route path='/list' element={<List token={token} />} />
+                <Route path='/edit/:id' element={<Edit token={token} />} />
                 <Route path='/orders' element={<Orders token={token} />} />
-                <Route path='/dashboard' element={<Dashboard token={token} />} />
+                <Route path='/restock' element={<Restock token={token} />} />
                 <Route path='/coupons' element={<Coupons token={token} />} />
+                <Route path='/users' element={<Users token={token} />} />
+                <Route path='/category' element={<Category token={token} />} />
               </Routes>
-            </div
+            </div>
           </div>
         </>}
     </div>
