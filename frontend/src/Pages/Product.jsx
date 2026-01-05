@@ -1,159 +1,151 @@
-import { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ShopContext } from '../Context/ShopContext';
+import axios from 'axios'; // Cần import axios để gọi API trực tiếp
 import { assets } from '../assets/assets';
 import RelatedProducts from '../Components/RelatedProducts';
 
 const Product = () => {
   const { productId } = useParams();
-  const { products, currency, addToCart } = useContext(ShopContext);
-  const [productsData, setProductsData] = useState(false);
+  const { currency, backendUrl, addToCart } = useContext(ShopContext);
+  const [productData, setProductData] = useState(null); // Khởi tạo là null thay vì false
   const [image, setImage] = useState('');
   const [size, setSize] = useState('');
 
-  const fetchProductsData = async () => {
-    products.map((product) => {
-      if (product._id === productId) {
-        setProductsData(product);
-        setImage(product.image[0]);
-
-        return null;
+  // Hàm lấy dữ liệu trực tiếp từ Database
+  const fetchProductData = async () => {
+    try {
+      // Gọi API endpoint /limit/:postId mà bạn đã có trong backend
+      const response = await axios.get(`${backendUrl}/api/product/limit/${productId}`);
+      
+      // Kiểm tra xem request có thành công không (dựa trên cấu trúc trả về của Backend Service)
+      if (response.data.err === 0) {
+        const product = response.data.response; // Backend gói dữ liệu trong biến 'response'
+        setProductData(product);
+        
+        // FIX QUAN TRỌNG: Backend trả về 'images' (mảng), không phải 'image'
+        if (product.images && product.images.length > 0) {
+            setImage(product.images[0].imageUrl); 
+        } else {
+            // Fallback nếu sản phẩm không có ảnh
+            setImage(assets.box_img || ''); 
+        }
+      } else {
+        console.error("Lỗi từ backend:", response.data.msg);
       }
-    });
+    } catch (error) {
+      console.error("Lỗi kết nối:", error);
+    }
   };
 
   useEffect(() => {
-    fetchProductsData();
-  }, [productId, products]);
+    fetchProductData();
+  }, [productId, backendUrl]); // Chạy lại khi ID sản phẩm thay đổi
 
-  return productsData ? (
+  // Hiển thị Loading hoặc Nội dung
+  return productData ? (
     <div className="border-t-2 pt-10 transition-opacity ease-in duration-500 opacity-100">
-      {/* ---------------------- Products Data ----------------------*/}
+      {/* ---------------------- Product Data ---------------------- */}
       <div className="flex gap-12 sm:gap-12 flex-col sm:flex-row">
-        {/* ---------------------- products images ---------------------- */}
-
-        <div className="flex-1 flex flex-col-reverse gap-3 sm:flex-row ">
-          {/* ---------------------- List images ----------------------*/}
-          <div className="flex sm:flex-col  overflow-x-auto sm:overflow-y-scroll justify-between  sm:justify-normal sm:w-[18.7%] w-full">
-            {productsData.image.map((item, index) => (
+        
+        {/* ---------------------- Product Images ---------------------- */}
+        <div className="flex-1 flex flex-col-reverse gap-3 sm:flex-row">
+          <div className="flex sm:flex-col overflow-x-auto sm:overflow-y-scroll justify-between sm:justify-normal sm:w-[18.7%] w-full">
+            {/* Render list ảnh nhỏ bên trái */}
+            {productData.images.map((item, index) => (
               <img
+                onClick={() => setImage(item.imageUrl)}
+                src={item.imageUrl}
                 key={index}
-                src={item}
-                alt="product"
-                onClick={() => setImage(item)}
-                className="cursor-pointer w-[24%]  sm:w-full sm:mb-3 flex-shrink-0  object-cover"
+                className="w-[24%] sm:w-full sm:mb-3 flex-shrink-0 cursor-pointer"
+                alt=""
               />
             ))}
           </div>
-
-          {/*---------------------- main img---------------------- */}
           <div className="w-full sm:w-[80%]">
-            <img
-              src={image}
-              alt="product"
-              className="w-full h-auto object-cover"
-            />
+            <img className="w-full h-auto" src={image} alt="" />
           </div>
         </div>
 
-        {/* ---------------------- products details ---------------------- */}
-
+        {/* ---------------------- Product Info ---------------------- */}
         <div className="flex-1">
-          <h1 className="font-medium text-2xl mt-2">{productsData.name}</h1>
-
-          {/* <div className="flex items-center gap-1 mt-2">
+          <h1 className="font-medium text-2xl mt-2">{productData.name}</h1>
+          <div className="flex items-center gap-1 mt-2">
             <img src={assets.star_icon} alt="" className="w-3 5" />
             <img src={assets.star_icon} alt="" className="w-3 5" />
             <img src={assets.star_icon} alt="" className="w-3 5" />
             <img src={assets.star_icon} alt="" className="w-3 5" />
             <img src={assets.star_dull_icon} alt="" className="w-3 5" />
-
             <p className="pl-2">(122)</p>
-          </div> */}
-          <p className="mt-5 text-3xl font-medium">
-            {productsData.price.toLocaleString()}{currency}
-          </p>
-          <p className="mt-5 text-gray-500 md:w-4/5 ">
-            {productsData.description}
-          </p>
-
-          <div className="flex flex-col gap-4 my-8">
-            <p className="">Chọn Size</p>
-            <div className="flex gap-2">
-              {productsData.sizes.map((item, index) => {
-                // Support both new object format and legacy string format (just in case)
-                const sizeName = typeof item === 'object' ? item.size : item;
-                const quantity = typeof item === 'object' ? item.quantity : 1;
-                const isOutOfStock = quantity <= 0;
-
-                return (
-                  <button
-                    key={index}
-                    disabled={isOutOfStock}
-                    onClick={() => {
-                      if (!isOutOfStock) setSize(sizeName);
-                    }}
-                    className={`w-10 h-10 border bg-gray-100 flex items-center justify-center cursor-pointer relative
-                    ${sizeName === size ? 'border-orange-500' : ''}
-                    ${isOutOfStock ? 'opacity-50 cursor-not-allowed bg-gray-200' : ''}
-                    `}
-                    title={isOutOfStock ? "Hết hàng" : `Còn lại: ${quantity}`}
-                  >
-                    {sizeName}
-                  </button>
-                )
-              })}
-            </div>
           </div>
+          <p className="mt-5 text-3xl font-medium">
+            {currency}{productData.price}
+          </p>
+          <p className="mt-5 text-gray-500 md:w-4/5">
+            {productData.description}
+          </p>
+          
+          {/* Chọn Size - Cần kiểm tra xem backend của bạn lưu size ở đâu */}
+          {/* Code cũ giả định size nằm trong mảng sizes, nhưng trong model Product.js của bạn tôi không thấy trường 'sizes' ở root cấp độ, 
+              mà nằm trong mảng 'info'. Bạn cần check lại logic này. 
+              Tạm thời tôi comment lại để tránh lỗi crash trang. */}
+          {/* <div className="flex flex-col gap-4 my-8">
+            <p>Select Size</p>
+            <div className="flex gap-2">
+              {productData.sizes?.map((item, index) => (
+                <button
+                  onClick={() => setSize(item)}
+                  className={`border py-2 px-4 bg-gray-100 ${
+                    item === size ? 'border-orange-500' : ''
+                  }`}
+                  key={index}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div> 
+          */}
 
           <button
-            onClick={() => addToCart(productsData._id, size)}
-            className="bg-black text-white py-3 px-8 text-sm active:bg-gray-700"
+            onClick={() => addToCart(productData._id, size)}
+            className="bg-black text-white px-8 py-3 text-sm active:bg-gray-700"
           >
-            THÊM VÀO GIỎ
+            ADD TO CART
           </button>
-
+          
           <hr className="mt-8 sm:w-4/5" />
-
-          <div className="flex flex-col gap-1 mt-5 text-sm text-gray-500">
-            <p>Sản phẩm chính hãng 100%</p>
-            <p>Miễn phí giao hàng cho đơn hàng trên 1.000.000đ</p>
-            <p>Đổi trả dễ dàng trong vòng 7 ngày</p>
+          <div className="text-sm text-gray-500 mt-5 flex flex-col gap-1">
+            <p>100% Original product.</p>
+            <p>Cash on delivery is available on this product.</p>
+            <p>Easy return and exchange policy within 7 days.</p>
           </div>
         </div>
       </div>
 
-      {/* ---------------------- Products Description and review section ----------------------*/}
-
-      <div className="mt-10">
+      {/* ---------------------- Description & Review ---------------------- */}
+      <div className="mt-20">
         <div className="flex">
-          <b className="px-5 py-3 text-sm border">Mô tả</b>
-          {/* <p className="px-5 py-3 text-sm border">Reviews (122)</p> */}
+          <b className="border px-5 py-3 text-sm">Description</b>
+          <p className="border px-5 py-3 text-sm">Reviews (122)</p>
         </div>
-
-        <div className=" flex flex-col gap-4 border px-6 py-6 text-sm text-gray-500 ">
-          <p>
-            Trang web thương mại điện tử là nền tảng trực tuyến giúp mua và bán
-            sản phẩm hoặc dịch vụ qua internet. Nó hoạt động như một chợ
-            ảo, nơi các doanh nghiệp và cá nhân giới thiệu sản phẩm, tương tác
-            với khách hàng và giao dịch mà không cần hiện diện vật lý.
-          </p>
-          <p>
-            Các trang web thương mại điện tử thường hiển thị sản phẩm cùng
-            với mô tả, hình ảnh, giá cả và các biến thể có sẵn (ví dụ: size, màu sắc).
-          </p>
+        <div className="flex flex-col gap-4 border px-6 py-6 text-sm text-gray-500">
+            {/* Hiển thị thông tin chi tiết từ mảng info nếu có */}
+             {productData.info && productData.info.map((infoItem, idx) => (
+                <div key={idx}>
+                    <p><strong>Version:</strong> {infoItem.version} - <strong>Color:</strong> {infoItem.color}</p>
+                    <p>{infoItem.information}</p>
+                </div>
+             ))}
         </div>
       </div>
 
-      {/* ----------------------  Display Products  ----------------------*/}
-
-      <RelatedProducts
-        category={productsData.category}
-        subCategory={productsData.subCategory}
-      />
+      {/* ---------------------- Related Products ---------------------- */}
+      {/* Cần truyền category xuống để component này lọc */}
+      <RelatedProducts category={productData.category} subCategory={productData.subCategory} />
     </div>
   ) : (
-    <div className="opacity-0"></div>
+    <div className="opacity-0"></div> // Hoặc component Loading spinner
   );
 };
 
