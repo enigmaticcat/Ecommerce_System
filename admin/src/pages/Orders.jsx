@@ -8,6 +8,8 @@ import { assets } from '../assets/assets.js'
 const Orders = ({token}) => {
   const [orders, setOrders] = useState([])
   const [products, setProducts] = useState([])
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
   
   const fetchAllOrders = async () => {
     if(!token) {
@@ -87,11 +89,16 @@ const Orders = ({token}) => {
     fetchAllProducts()
   }, [token])
 
+  const totalPages = Math.ceil(orders.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedOrders = orders.slice(startIndex, endIndex);
+
   return (
     <div>
       <h3>Quản lý đơn hàng</h3>
       <div>
-        {orders.map((order, index) => (
+        {paginatedOrders.map((order, index) => (
           <div className='grid grid-cols-1 sm:grid-cols-[0.5fr_2fr_1fr] lg:grid-cols-[0.5fr_2fr_1fr_1fr_1fr] gap-3 items-start border-2 border-gray-200 p-5 md:p-8 my-3 md:my-4 text-xs sm:text-sm text-gray-700' key={index}>
             <img className='w-12' src={assets.parcel_icon} alt="" />
             <div>
@@ -152,6 +159,27 @@ const Orders = ({token}) => {
             </div>
         ))}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className='flex justify-center mt-4 gap-2'>
+          <button 
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} 
+            disabled={currentPage === 1}
+            className='px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50'
+          >
+            Previous
+          </button>
+          <span className='px-3 py-1'>Trang {currentPage} / {totalPages}</span>
+          <button 
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} 
+            disabled={currentPage === totalPages}
+            className='px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50'
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   )
 }

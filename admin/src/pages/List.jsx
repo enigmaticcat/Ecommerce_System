@@ -9,6 +9,8 @@ const List = ({token}) => {
   const [expandedId, setExpandedId] = useState(null);
   const [sortOrder, setSortOrder] = useState(null); // 'asc', 'desc', null
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   const fetchList = async () => {
     try {
@@ -63,6 +65,15 @@ const List = ({token}) => {
       return 0;
     });
 
+  const totalPages = Math.ceil(filteredAndSortedList.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedList = filteredAndSortedList.slice(startIndex, endIndex);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, sortOrder]);
+
   return (
     <>
       <p className='mb-2'>Danh sách sản phẩm</p>
@@ -93,7 +104,7 @@ const List = ({token}) => {
           <b className='w-24 text-center'>Thao tác</b>
         </div>
         {
-          filteredAndSortedList.map((item, index) => {
+          paginatedList.map((item, index) => {
             // Calculate total stock
             let totalStock = 0;
             if (item.sizes && Array.isArray(item.sizes)) {
@@ -158,6 +169,27 @@ const List = ({token}) => {
             )})
         }
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className='flex justify-center mt-4 gap-2'>
+          <button 
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} 
+            disabled={currentPage === 1}
+            className='px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50'
+          >
+            Previous
+          </button>
+          <span className='px-3 py-1'>Trang {currentPage} / {totalPages}</span>
+          <button 
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} 
+            disabled={currentPage === totalPages}
+            className='px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50'
+          >
+            Next
+          </button>
+        </div>
+      )}
     </>
   );
 };
