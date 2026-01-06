@@ -7,6 +7,8 @@ import { toast } from 'react-toastify';
 const List = ({token}) => {
   const [list, setList] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
+  const [sortOrder, setSortOrder] = useState(null); // 'asc', 'desc', null
+  const [searchTerm, setSearchTerm] = useState('');
 
   const fetchList = async () => {
     try {
@@ -53,20 +55,45 @@ const List = ({token}) => {
     fetchList();
   }, []);
 
+  const filteredAndSortedList = list
+    .filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    .sort((a, b) => {
+      if (sortOrder === 'asc') return a.price - b.price;
+      if (sortOrder === 'desc') return b.price - a.price;
+      return 0;
+    });
+
   return (
     <>
       <p className='mb-2'>Danh sách sản phẩm</p>
       <div className='flex flex-col gap-2'>
-        <div className='hidden md:grid grid-cols-[1fr_3fr_1fr_1fr_1fr_1fr] items-center py-1 px-2 border bg-gray-100 text-sm'>
-          <b>Ảnh</b>
-          <b>Tên</b>
-          <b>Danh mục</b>
-          <b>Giá</b>
-          <b>Tồn kho</b>
-          <b className='text-center'>Thao tác</b>
+        <div className='hidden md:flex justify-between items-center py-1 px-2 border bg-gray-100 text-sm gap-2'>
+          <b className='w-12'>Ảnh</b>
+          <div className='flex-1 flex items-center'>
+            <b>Tên</b>
+            <input
+              type="text"
+              placeholder="Tìm kiếm..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="ml-2 px-2 py-1 text-xs border rounded w-32"
+            />
+          </div>
+          <b className='w-20'>Danh mục</b>
+          <div className='w-20 flex items-center'>
+            <b>Giá</b>
+            <button
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : sortOrder === 'desc' ? null : 'asc')}
+              className="ml-1 text-xs bg-gray-200 px-1 rounded hover:bg-gray-300"
+            >
+              {sortOrder === 'asc' ? '▲' : sortOrder === 'desc' ? '▼' : '↕'}
+            </button>
+          </div>
+          <b className='w-20'>Tồn kho</b>
+          <b className='w-24 text-center'>Thao tác</b>
         </div>
         {
-          list.map((item, index) => {
+          filteredAndSortedList.map((item, index) => {
             // Calculate total stock
             let totalStock = 0;
             if (item.sizes && Array.isArray(item.sizes)) {
@@ -80,17 +107,17 @@ const List = ({token}) => {
             return (
               <div key={index}>
                 <div 
-                  className='grid grid-cols-[1fr_3fr_1fr] md:grid-cols-[1fr_3fr_1fr_1fr_1fr_1fr] items-center gap-2 py-1 px-2 border text-sm cursor-pointer hover:bg-gray-50'
+                  className='flex flex-col md:flex-row md:justify-between md:items-center gap-2 py-1 px-2 border text-sm cursor-pointer hover:bg-gray-50'
                   onClick={() => toggleExpand(item._id)}
                 >
                   <img className='w-12' src={item.image[0]} alt=""/>
-                  <p>{item.name}</p>
-                  <p>{item.category}</p>
-                  <p>{item.price.toLocaleString()}{currency}</p>
-                  <p className={`${totalStock > 0 ? 'text-green-600' : 'text-red-500'} cursor-pointer underline`}>
+                  <p className='md:flex-1'>{item.name}</p>
+                  <p className='md:w-20'>{item.category}</p>
+                  <p className='md:w-20'>{item.price.toLocaleString()}{currency}</p>
+                  <p className={`md:w-20 ${totalStock > 0 ? 'text-green-600' : 'text-red-500'} cursor-pointer underline`}>
                     {totalStock} ▼
                   </p>
-                  <div className='flex gap-2 justify-end md:justify-center' onClick={(e) => e.stopPropagation()}>
+                  <div className='md:w-24 flex gap-2 justify-end md:justify-center' onClick={(e) => e.stopPropagation()}>
                     <Link 
                       to={`/edit/${item._id}`}
                       className='bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-xs'
