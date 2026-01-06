@@ -1,59 +1,70 @@
-import React, { useEffect, useState } from 'react';
-import Navbar from './components/Navbar';
-import Sidebar from './components/Sidebar';
-import { Routes, Route } from 'react-router-dom';
-import Add from './pages/Add';
-import List from './pages/List';
-import Edit from './pages/Edit';
-import Orders from './pages/Orders';
-import Restock from './pages/Restock';
-import Dashboard from './pages/Dashboard';
-import Coupons from './pages/Coupons';
-import Users from './pages/Users';
-import Category from './pages/Category';
-import Login from './components/Login';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import Chat from './pages/Chat'
+import React, { useEffect, useState } from "react";
+import Navbar from "./components/Navbar";
+import Sidebar from "./components/Sidebar";
+import { Routes, Route } from "react-router-dom";
+import Add from "./pages/Add";
+import List from "./pages/List";
+import Edit from "./pages/Edit";
+import Orders from "./pages/Orders";
+import Restock from "./pages/Restock";
+import Dashboard from "./pages/Dashboard";
+import Coupons from "./pages/Coupons";
+import Users from "./pages/Users";
+import Category from "./pages/Category";
+import Login from "./components/Login";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import Chat from "./pages/Chat";
 
 export const backendUrl = import.meta.env.VITE_BACKEND_URL;
 export const currency = "₫";
 
 const App = () => {
-
-  const [token, setToken] = useState(localStorage.getItem('token') ? localStorage.getItem('token') : '');
+  const [token, setToken] = useState(
+    localStorage.getItem("token") ? localStorage.getItem("token") : ""
+  );
 
   useEffect(() => {
-    localStorage.setItem('token', token)
-  }, [token])
+    localStorage.setItem("token", token);
+  }, [token]);
 
   return (
-    <div className='bg-gray-50 min-h-screen'>
+    <div className="bg-gray-50 min-h-screen">
       <ToastContainer />
-      {token === ""
-        ? <Login setToken={setToken} />
-        : <>
+      {token === "" ? (
+        <Login setToken={setToken} />
+      ) : (
+        <>
           <Navbar setToken={setToken} />
           <hr />
-          <div className='flex w-full'>
+          <div className="w-full">
             <Sidebar />
-            <div className="w-[70%] mx-auto ml-[max(5vw,25px)] my-8 text-gray-600 text-base">
+            <div
+              className="text-gray-600 text-base"
+              style={{
+                marginLeft: "18%",
+                marginTop: "calc(49px + 2rem)",
+                marginBottom: "2rem",
+                paddingLeft: "max(5vw, 25px)",
+                paddingRight: "max(5vw, 25px)",
+              }}
+            >
               <Routes>
-                <Route path='/' element={<Dashboard token={token} />} />
-                <Route path='/add' element={<Add token={token} />} />
-                <Route path='/list' element={<List token={token} />} />
-                <Route path='/edit/:id' element={<Edit token={token} />} />
-                <Route path='/orders' element={<Orders token={token} />} />
-                <Route path='/restock' element={<Restock token={token} />} />
-                <Route path='/coupons' element={<Coupons token={token} />} />
-                <Route path='/users' element={<Users token={token} />} />
-                <Route path='/category' element={<Category token={token} />} />
-                <Route path='/chat' element={<Chat token={token} />} />
-                
+                <Route path="/" element={<Dashboard token={token} />} />
+                <Route path="/add" element={<Add token={token} />} />
+                <Route path="/list" element={<List token={token} />} />
+                <Route path="/edit/:id" element={<Edit token={token} />} />
+                <Route path="/orders" element={<Orders token={token} />} />
+                <Route path="/restock" element={<Restock token={token} />} />
+                <Route path="/coupons" element={<Coupons token={token} />} />
+                <Route path="/users" element={<Users token={token} />} />
+                <Route path="/category" element={<Category token={token} />} />
+                <Route path="/chat" element={<Chat token={token} />} />
               </Routes>
             </div>
           </div>
-        </>}
+        </>
+      )}
     </div>
   );
 };
