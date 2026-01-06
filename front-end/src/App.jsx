@@ -27,6 +27,7 @@ function App() {
       <ToastContainer />
 
       <Navbar />
+      <div className="pt-[73px]">
       <SearchBar />
       <ChatWidget />
 
@@ -46,6 +47,7 @@ function App() {
       </Routes>
 
       <Footer />
+      </div>
     </div>
   );
 }
