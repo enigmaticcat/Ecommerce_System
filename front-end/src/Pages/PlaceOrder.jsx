@@ -133,7 +133,7 @@ const PlaceOrder = () => {
                 {
                     amount: totalAmount,
                     orderInfo: orderId || Date.now().toString(), // Fallback if ID invalid
-                    returnUrl: 'https://ecommerce-system-tapo.onrender.com/api/vnpay/vnpay-return' 
+                    returnUrl: 'https://ecommerce-system-tapo.onrender.com/api/vnpay/vnpay_return' 
                 },
                 { headers: { token } }
              );
