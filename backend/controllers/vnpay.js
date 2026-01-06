@@ -22,7 +22,7 @@ export const createPaymentUrl = async (req, res) => {
         if (!tmnCode || !secretKey || !vnpUrl) {
             console.warn("VNPay environment variables missing. Using SANDBOX default values for testing.");
             tmnCode = "4JLF9A6F"; // Example Sandbox TmnCode
-            secretKey = "OJC7198ZDPMCBMJTNJIL7LOWRRV1WOX6"; 
+            secretKey = "OJC7198ZDPMCBMJTNJIL7LOWRRV1WOX6";
             vnpUrl = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
         }
 
@@ -82,6 +82,9 @@ export const vnpayReturn = async (req, res) => {
         let hmac = crypto.createHmac("sha512", secretKey);
         let signed = hmac.update(new Buffer(signData, 'utf-8')).digest("hex");
 
+        // Frontend URL for redirect (use env or fallback to localhost for dev)
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
         if (secureHash === signed) {
             // Checksum match
             const orderId = vnp_Params['vnp_TxnRef'];
@@ -96,16 +99,20 @@ export const vnpayReturn = async (req, res) => {
                     order.paymentMethod = "VNPay";
                     await order.save();
                 }
-                res.status(200).json({ success: true, message: "Payment successful" });
+                // Redirect to frontend verify page with success
+                return res.redirect(`${frontendUrl}/verify?success=true&orderId=${orderId}`);
             } else {
-                res.status(200).json({ success: false, message: "Payment failed" });
+                // Payment failed, redirect with failure
+                return res.redirect(`${frontendUrl}/verify?success=false&orderId=${orderId}`);
             }
         } else {
-            res.status(200).json({ success: false, message: "Invalid Signature" });
+            // Invalid signature
+            return res.redirect(`${frontendUrl}/verify?success=false&error=invalid_signature`);
         }
     } catch (error) {
         console.error("VNPay Return Error:", error);
-        res.status(500).json({ success: false, message: error.message });
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        return res.redirect(`${frontendUrl}/verify?success=false&error=server_error`);
     }
 }
 
